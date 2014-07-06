@@ -161,25 +161,23 @@ public class CassandraCQLClient extends DB {
      *
      * @param table The name of the table
      * @param key The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
+     * @param field The field to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    public int read(String table, String key, String field, HashMap<String, ByteIterator> result) {
 
         try {
             Statement stmt;
             Select.Builder selectBuilder;
 
-            if (fields == null) {
+            if (field == null) {
                 selectBuilder = QueryBuilder.select().all();
             }
             else {
                 selectBuilder = QueryBuilder.select();
-                for (String col : fields) {
-                    ((Select.Selection) selectBuilder).column(col);
-                }
+                ((Select.Selection) selectBuilder).column(field);
             }
 
             stmt = selectBuilder.from(table).where(QueryBuilder.eq(YCSB_KEY, key)).limit(1);
@@ -229,26 +227,24 @@ public class CassandraCQLClient extends DB {
      * @param table The name of the table
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields The list of fields to read, or null for all of them
+     * @param field The field to read, or null for all of them
      * @param result A Vector of HashMaps, where each HashMap is a set
      * field/value pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    public int scan(String table, String startkey, int recordcount, String field, Vector<HashMap<String, ByteIterator>> result) {
 
         try {
             Statement stmt;
             Select.Builder selectBuilder;
 
-            if (fields == null) {
+            if (field == null) {
                 selectBuilder = QueryBuilder.select().all();
             }
             else {
                 selectBuilder = QueryBuilder.select();
-                for (String col : fields) {
-                    ((Select.Selection) selectBuilder).column(col);
-                }
+                ((Select.Selection) selectBuilder).column(field);
             }
 
             stmt = selectBuilder.from(table);

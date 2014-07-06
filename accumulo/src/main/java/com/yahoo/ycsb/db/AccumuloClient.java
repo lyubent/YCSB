@@ -171,7 +171,7 @@ public class AccumuloClient extends DB {
 	}
 
 	@Override
-	public int read(String table, String key, Set<String> fields,
+	public int read(String table, String key, String field,
 			HashMap<String, ByteIterator> result) {
 
 		try {
@@ -199,7 +199,7 @@ public class AccumuloClient extends DB {
 
 	@Override
 	public int scan(String table, String startkey, int recordcount,
-			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+			String field, Vector<HashMap<String, ByteIterator>> result) {
 		try {
 			checkTable(table);
 		} catch (TableNotFoundException e) {
@@ -218,12 +218,9 @@ public class AccumuloClient extends DB {
 		// we're interested in.
 		// We try to fetch one more so as to tell when we've run out of fields.
 
-		if (fields != null) {
-			// And add each of them as fields we want.
-			for(String field:fields)
-			{
-				_scanScanner.fetchColumn(_colFam, new Text(field));
-			}
+		if (field != null) {
+			// And add the field we want.
+			_scanScanner.fetchColumn(_colFam, new Text(field));
 		} else {
 			// If no fields are provided, we assume one column/row.
 		}
@@ -240,15 +237,7 @@ public class AccumuloClient extends DB {
 					break;
 				}
 				rowKey = entry.getKey().getRow().toString();
-				if (fields != null) {
-					// Initial Capacity for all keys.
-					currentHM = new HashMap<String, ByteIterator>(fields.size()); 
-				}
-				else
-				{
-					// An empty result map.
-					currentHM = new HashMap<String, ByteIterator>();
-				}
+				currentHM = new HashMap<String, ByteIterator>();
 				result.add(currentHM);
 			}
 			// Now add the key to the hashmap.
@@ -376,12 +365,9 @@ public class AccumuloClient extends DB {
 					//(current way is kind of ugly but works, i think)
 					//TODO : Get table name from configuration or argument
 					String table = "usertable";
-					HashSet<String> fields = new HashSet<String>();
-					for (int j=0; j<9; j++)
-						fields.add("field"+j);
 					HashMap<String,ByteIterator> result = new HashMap<String,ByteIterator>();
 
-					int retval = read(table, strKey, fields, result);
+					int retval = read(table, strKey, null, result);
 					//If the results are empty, the key is enqueued in Zookeeper
 					//and tried again, until the results are found.
 					if (result.size() == 0) { 

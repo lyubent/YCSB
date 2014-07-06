@@ -78,7 +78,7 @@ public class VoldemortClient extends DB {
 	}
 
 	@Override
-	public int read(String table, String key, Set<String> fields,
+	public int read(String table, String key, String field,
 			HashMap<String, ByteIterator> result) {
 		if ( checkStore(table) == ERROR ) {
 			return ERROR;
@@ -88,13 +88,10 @@ public class VoldemortClient extends DB {
 		
 		if ( versionedValue == null )
 			return NOT_FOUND;
-		
-		if ( fields != null ) {
-			for (String field : fields) {
-				String val = versionedValue.getValue().get(field);
-				if ( val != null )
-				    result.put(field, new StringByteIterator(val));
-			}
+        if ( field != null ) {
+            String val = versionedValue.getValue().get(field);
+            if ( val != null )
+                result.put(field, new StringByteIterator(val));
 		} else {
 			StringByteIterator.putAllAsByteIterators(result, versionedValue.getValue());
 		}
@@ -103,7 +100,7 @@ public class VoldemortClient extends DB {
 
 	@Override
 	public int scan(String table, String startkey, int recordcount,
-			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+			String field, Vector<HashMap<String, ByteIterator>> result) {
 		logger.warn("Voldemort does not support Scan semantics");
 		return OK;
 	}

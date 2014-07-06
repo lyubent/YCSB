@@ -76,7 +76,7 @@
     <!--<module>gemfire</module>-->
     <!--<module>infinispan</module>-->
     <module>jdbc</module>
-    <module>mapkeeper</module>
+    <!--<module>mapkeeper</module>-->
     <!--<module>membase</module>-->
     <module>memcached</module>
     <module>mongodb</module>

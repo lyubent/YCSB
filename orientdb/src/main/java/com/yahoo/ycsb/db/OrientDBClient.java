@@ -146,20 +146,19 @@ public class OrientDBClient extends DB {
    *
    * @param table The name of the table
    * @param key The record key of the record to read.
-   * @param fields The list of fields to read, or null for all of them
+   * @param field The field to read, or null for all of them
    * @param result A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error or "not found".
    */
-  public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public int read(String table, String key, String field, HashMap<String, ByteIterator> result) {
     try {
       final ODocument document = dictionary.get(key);
       if (document != null) {
-        if (fields != null)
-          for (String field : fields)
-            result.put(field, new StringByteIterator((String) document.field(field)));
+        if (field != null)
+          result.put(field, new StringByteIterator((String) document.field(field)));
         else
-          for (String field : document.fieldNames())
-            result.put(field, new StringByteIterator((String) document.field(field)));
+          for (String f : document.fieldNames())
+            result.put(f, new StringByteIterator((String) document.field(field)));
         return 0;
       }
     } catch (Exception e) {
@@ -200,19 +199,19 @@ public class OrientDBClient extends DB {
    * @param table The name of the table
    * @param startkey The record key of the first record to read.
    * @param recordcount The number of records to read
-   * @param fields The list of fields to read, or null for all of them
+   * @param field The field to read, or null for all of them
    * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
    * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
    */
-  public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+  public int scan(String table, String startkey, int recordcount, String field, Vector<HashMap<String, ByteIterator>> result) {
     try {
       final Collection<ODocument> documents = dictionary.getIndex().getEntriesMajor(startkey, true, recordcount);
       for (ODocument document : documents) {
-        final HashMap<String, ByteIterator> entry = new HashMap<String, ByteIterator>(fields.size());
+        final HashMap<String, ByteIterator> entry = new HashMap<String, ByteIterator>();
         result.add(entry);
 
-        for (String field : fields)
-          entry.put(field, new StringByteIterator((String) document.field(field)));
+
+        entry.put(field, new StringByteIterator((String) document.field(field)));
       }
 
       return 0;

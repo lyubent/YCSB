@@ -112,11 +112,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      *
      * @param table The name of the table
      * @param key The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
+     * @param field The list of fields to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
+    public int read(String table, String key, String field, HashMap<String,ByteIterator> result)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
@@ -141,12 +141,10 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         System.out.println("Doing read for key: "+key);
         }
             Get g = new Get(Bytes.toBytes(key));
-          if (fields == null) {
+          if (field == null) {
             g.addFamily(_columnFamilyBytes);
           } else {
-            for (String field : fields) {
-              g.addColumn(_columnFamilyBytes, Bytes.toBytes(field));
-            }
+            g.addColumn(_columnFamilyBytes, Bytes.toBytes(field));
           }
             r = _hTable.get(g);
         }
@@ -180,11 +178,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param table The name of the table
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields The list of fields to read, or null for all of them
+     * @param field The field to read, or null for all of them
      * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
+    public int scan(String table, String startkey, int recordcount, String field, Vector<HashMap<String,ByteIterator>> result)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
@@ -207,16 +205,13 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         s.setCaching(recordcount);
 
         //add specified fields or else all fields
-        if (fields == null)
+        if (field == null)
         {
             s.addFamily(_columnFamilyBytes);
         }
         else
         {
-            for (String field : fields)
-            {
-                s.addColumn(_columnFamilyBytes,Bytes.toBytes(field));
-            }
+            s.addColumn(_columnFamilyBytes,Bytes.toBytes(field));
         }
 
         //get results

@@ -508,18 +508,12 @@ public class CoreWorkload extends Workload {
         int keynum = nextKeynum();
 
         String keyname = buildKeyName(keynum);
+        String field = null;
 
-        HashSet<String> fields = null;
+        if (!readallfields)
+            field = fieldnameprefix + fieldchooser.nextString();
 
-        if (!readallfields) {
-            //read a random field
-            String fieldname = fieldnameprefix + fieldchooser.nextString();
-
-            fields = new HashSet<String>();
-            fields.add(fieldname);
-        }
-
-        db.read(table, keyname, fields, new HashMap<String, ByteIterator>());
+        db.read(table, keyname, field, new HashMap<String, ByteIterator>());
     }
 
     public void doTransactionReadModifyWrite(DB db) {
@@ -527,15 +521,11 @@ public class CoreWorkload extends Workload {
         int keynum = nextKeynum();
 
         String keyname = buildKeyName(keynum);
-
-        HashSet<String> fields = null;
+        String field = null;
 
         if (!readallfields) {
             //read a random field
-            String fieldname = fieldnameprefix + fieldchooser.nextString();
-
-            fields = new HashSet<String>();
-            fields.add(fieldname);
+            field = fieldnameprefix + fieldchooser.nextString();
         }
 
         HashMap<String, ByteIterator> values;
@@ -552,8 +542,7 @@ public class CoreWorkload extends Workload {
 
         long st = System.nanoTime();
 
-        db.read(table, keyname, fields, new HashMap<String, ByteIterator>());
-
+        db.read(table, keyname, field, new HashMap<String, ByteIterator>());
         db.update(table, keyname, values);
 
         long en = System.nanoTime();
@@ -570,17 +559,14 @@ public class CoreWorkload extends Workload {
         //choose a random scan length
         int len = scanlength.nextInt();
 
-        HashSet<String> fields = null;
+        String field = null;
 
         if (!readallfields) {
             //read a random field
-            String fieldname = fieldnameprefix + fieldchooser.nextString();
-
-            fields = new HashSet<String>();
-            fields.add(fieldname);
+            field = fieldnameprefix + fieldchooser.nextString();
         }
 
-        db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+        db.scan(table, startkeyname, len, field, new Vector<HashMap<String, ByteIterator>>());
     }
 
     public void doTransactionUpdate(DB db) {

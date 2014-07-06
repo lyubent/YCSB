@@ -189,11 +189,11 @@ public class CassandraClient10 extends DB
      *
      * @param table  The name of the table
      * @param key    The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
+     * @param field  The field to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result)
+    public int read(String table, String key, String field, HashMap<String, ByteIterator> result)
     {
         if (!_table.equals(table))
         {
@@ -215,19 +215,13 @@ public class CassandraClient10 extends DB
             try
             {
                 SlicePredicate predicate;
-                if (fields == null)
+                if (field == null)
                 {
                     predicate = new SlicePredicate().setSlice_range(new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000));
                 }
                 else
                 {
-                    ArrayList<ByteBuffer> fieldlist = new ArrayList<ByteBuffer>(fields.size());
-                    for (String s : fields)
-                    {
-                        fieldlist.add(ByteBuffer.wrap(s.getBytes("UTF-8")));
-                    }
-
-                    predicate = new SlicePredicate().setColumn_names(fieldlist);
+                    predicate = new SlicePredicate().setColumn_names(Arrays.asList(ByteBuffer.wrap(field.getBytes("UTF-8"))));
                 }
 
                 List<ColumnOrSuperColumn> results = client.get_slice(ByteBuffer.wrap(key.getBytes("UTF-8")), parent, predicate, readConsistencyLevel);
@@ -287,12 +281,12 @@ public class CassandraClient10 extends DB
      * @param table       The name of the table
      * @param startkey    The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields      The list of fields to read, or null for all of them
+     * @param field       The field to read, or null for all of them
      * @param result      A Vector of HashMaps, where each HashMap is a set field/value
      *                    pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scan(String table, String startkey, int recordcount, Set<String> fields,
+    public int scan(String table, String startkey, int recordcount, String field,
                     Vector<HashMap<String, ByteIterator>> result)
     {
         if (!_table.equals(table))
@@ -315,19 +309,13 @@ public class CassandraClient10 extends DB
             try
             {
                 SlicePredicate predicate;
-                if (fields == null)
+                if (field == null)
                 {
                     predicate = new SlicePredicate().setSlice_range(new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000));
                 }
                 else
                 {
-                    ArrayList<ByteBuffer> fieldlist = new ArrayList<ByteBuffer>(fields.size());
-                    for (String s : fields)
-                    {
-                        fieldlist.add(ByteBuffer.wrap(s.getBytes("UTF-8")));
-                    }
-
-                    predicate = new SlicePredicate().setColumn_names(fieldlist);
+                    predicate = new SlicePredicate().setColumn_names(Arrays.asList(ByteBuffer.wrap(field.getBytes("UTF-8"))));
                 }
 
                 KeyRange kr = new KeyRange().setStart_key(startkey.getBytes("UTF-8")).setEnd_key(new byte[]{ }).setCount(recordcount);
@@ -573,7 +561,8 @@ public class CassandraClient10 extends DB
         fields.add("middlename");
         fields.add("age");
         fields.add("favoritecolor");
-        res = cli.read("usertable", "BrianFrankCooper", null, result);
+        String temp = null;
+        res = cli.read("usertable", "BrianFrankCooper", temp, result);
         System.out.println("Result of read: " + res);
         for (String s : result.keySet())
         {

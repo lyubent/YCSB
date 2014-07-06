@@ -17,6 +17,8 @@
 package com.yahoo.ycsb.db;
 
 import java.io.FileInputStream;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -119,12 +121,12 @@ public class DynamoDBClient extends DB {
     }
 
     @Override
-    public int read(String table, String key, Set<String> fields,
+    public int read(String table, String key, String field,
             HashMap<String, ByteIterator> result) {
 
         logger.debug("readkey: " + key + " from table: " + table);
         GetItemRequest req = new GetItemRequest(table, createPrimaryKey(key));
-        req.setAttributesToGet(fields);
+        req.setAttributesToGet(Arrays.asList(field));
         req.setConsistentRead(consistentRead);
         GetItemResult res = null;
 
@@ -148,12 +150,13 @@ public class DynamoDBClient extends DB {
 
     @Override
     public int scan(String table, String startkey, int recordcount,
-        Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+        String field, Vector<HashMap<String, ByteIterator>> result) {
         logger.debug("scan " + recordcount + " records from key: " + startkey + " on table: " + table);
         /*
          * on DynamoDB's scan, startkey is *exclusive* so we need to
          * getItem(startKey) and then use scan for the res
          */
+        Set<String> fields = Collections.singleton(field);
         GetItemRequest greq = new GetItemRequest(table, createPrimaryKey(startkey));
         greq.setAttributesToGet(fields);
 

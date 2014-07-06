@@ -314,7 +314,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
   }
 
 	@Override
-	public int read(String tableName, String key, Set<String> fields,
+	public int read(String tableName, String key, String field,
 			HashMap<String, ByteIterator> result) {
 	  if (tableName == null) {
       return -1;
@@ -334,11 +334,9 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
         resultSet.close();
         return 1;
       }
-      if (result != null && fields != null) {
-        for (String field : fields) {
+      if (result != null && field != null) {
           String value = resultSet.getString(field);
           result.put(field, new StringByteIterator(value));
-        }
       }
       resultSet.close();
       return SUCCESS;
@@ -350,7 +348,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 
 	@Override
 	public int scan(String tableName, String startKey, int recordcount,
-			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+			String field, Vector<HashMap<String, ByteIterator>> result) {
 	  if (tableName == null) {
       return -1;
     }
@@ -366,12 +364,10 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
       scanStatement.setString(1, startKey);
       ResultSet resultSet = scanStatement.executeQuery();
       for (int i = 0; i < recordcount && resultSet.next(); i++) {
-        if (result != null && fields != null) {
+        if (result != null && field != null) {
           HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
-          for (String field : fields) {
-            String value = resultSet.getString(field);
-            values.put(field, new StringByteIterator(value));
-          }
+          String value = resultSet.getString(field);
+          values.put(field, new StringByteIterator(value));
           result.add(values);
         }
       }

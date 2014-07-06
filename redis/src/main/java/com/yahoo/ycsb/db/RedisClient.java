@@ -11,13 +11,7 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.StringByteIterator;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Protocol;
@@ -70,12 +64,14 @@ public class RedisClient extends DB {
     //XXX jedis.select(int index) to switch to `table`
 
     @Override
-    public int read(String table, String key, Set<String> fields,
+    public int read(String table, String key, String field,
             HashMap<String, ByteIterator> result) {
-        if (fields == null) {
+        if (field == null) {
             StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
         }
         else {
+            Set<String> fields = new HashSet<String>(1);
+            fields.add(field);
             String[] fieldArray = (String[])fields.toArray(new String[fields.size()]);
             List<String> values = jedis.hmget(key, fieldArray);
 
@@ -114,14 +110,14 @@ public class RedisClient extends DB {
 
     @Override
     public int scan(String table, String startkey, int recordcount,
-            Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+            String field, Vector<HashMap<String, ByteIterator>> result) {
         Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
                                 Double.POSITIVE_INFINITY, 0, recordcount);
 
         HashMap<String, ByteIterator> values;
         for (String key : keys) {
             values = new HashMap<String, ByteIterator>();
-            read(table, key, fields, values);
+            read(table, key, field, values);
             result.add(values);
         }
 

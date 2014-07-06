@@ -103,11 +103,11 @@ public class DBWrapper extends DB {
      *
      * @param table  The name of the table
      * @param key    The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
+     * @param field  The field to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public int read(final String table, final String key, final Set<String> fields, final HashMap<String, ByteIterator> result) {
+    public int read(final String table, final String key, final String field, final HashMap<String, ByteIterator> result) {
         return operation(new DBOperation() {
             @Override
             public String name() {
@@ -121,7 +121,7 @@ public class DBWrapper extends DB {
 
             @Override
             public int go() {
-                return _db.read(table, key, fields, result);
+                return _db.read(table, key, field, result);
             }
         });
     }
@@ -132,13 +132,13 @@ public class DBWrapper extends DB {
      * @param table       The name of the table
      * @param startkey    The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields      The list of fields to read, or null for all of them
+     * @param field       The field to read, or null for all of them
      * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    public int scan(String table, String startkey, int recordcount, String field, Vector<HashMap<String, ByteIterator>> result) {
         long st = System.nanoTime();
-        int res = _db.scan(table, startkey, recordcount, fields, result);
+        int res = _db.scan(table, startkey, recordcount, field, result);
         long en = System.nanoTime();
         _measurements.measure("SCAN", (int) ((en - st) / 1000));
         _measurements.reportReturnCode("SCAN", res);

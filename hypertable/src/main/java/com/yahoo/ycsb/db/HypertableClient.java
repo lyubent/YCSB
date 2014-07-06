@@ -117,12 +117,12 @@ public class HypertableClient extends com.yahoo.ycsb.DB
      *
      * @param table The name of the table
      * @param key The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
+     * @param field The field to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int read(String table, String key, Set<String> fields, 
+    public int read(String table, String key, String field,
                     HashMap<String, ByteIterator> result)
     {
         //SELECT _column_family:field[i] 
@@ -135,10 +135,10 @@ public class HypertableClient extends com.yahoo.ycsb.DB
         }
         
         try {
-            if (null != fields) {
+            if (null != field) {
                 Vector<HashMap<String, ByteIterator>> resMap = 
                         new Vector<HashMap<String, ByteIterator>>();
-                if (0 != scan(table, key, 1, fields, resMap)) {
+                if (0 != scan(table, key, 1, field, resMap)) {
                     return SERVERERROR;
                 }
                 if (!resMap.isEmpty())
@@ -172,15 +172,14 @@ public class HypertableClient extends com.yahoo.ycsb.DB
      * @param table The name of the table
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields The list of fields to read, or null for all of them
+     * @param field The field to read, or null for all of them
      * @param result A Vector of HashMaps, where each HashMap is a set 
      *    field/value pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
     @Override
     public int scan(String table, String startkey, int recordcount, 
-                    Set<String> fields, 
-                    Vector<HashMap<String, ByteIterator>> result)
+                    String field, Vector<HashMap<String, ByteIterator>> result)
     {
         //SELECT _columnFamily:fields FROM table WHERE (ROW >= startkey) 
         //    LIMIT recordcount MAX_VERSIONS 1;
@@ -190,10 +189,8 @@ public class HypertableClient extends com.yahoo.ycsb.DB
         elem.setStart_inclusive(true);
         elem.setStart_row(startkey);
         spec.addToRow_intervals(elem);
-        if (null != fields) {
-            for (String field : fields) {
-                spec.addToColumns(_columnFamily + ":" + field);
-            }
+        if (null != field) {
+            spec.addToColumns(_columnFamily + ":" + field);
         }
         spec.setVersions(1);
         spec.setRow_limit(recordcount);

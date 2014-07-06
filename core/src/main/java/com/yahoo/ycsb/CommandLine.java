@@ -53,8 +53,8 @@ public class CommandLine
       public static void help()
       {
 	 System.out.println("Commands:");
-	 System.out.println("  read key [field1 field2 ...] - Read a record");
-	 System.out.println("  scan key recordcount [field1 field2 ...] - Scan starting at key");
+	 System.out.println("  read key fieldname - Read a record");
+	 System.out.println("  scan key recordcount - Scan starting at key");
 	 System.out.println("  insert key name1=value1 [name2=value2 ...] - Insert a new record");
 	 System.out.println("  update key name1=value1 [name2=value2 ...] - Update a record");
 	 System.out.println("  delete key - Delete a record");
@@ -275,26 +275,16 @@ public class CommandLine
 	    }
 	    else if (tokens[0].compareTo("read")==0)
 	    {
-	       if (tokens.length==1)
+	       if (tokens.length==1 || tokens.length>3)
 	       {
-		  System.out.println("Error: syntax is \"read keyname [field1 field2 ...]\"");
+		  System.out.println("Error: syntax is \"read keyname fieldname\"");
 	       }
 	       else 
 	       {
-		  Set<String> fields=null;
-
-		  if (tokens.length>2)
-		  {
-		     fields=new HashSet<String>();
-		     
-		     for (int i=2; i<tokens.length; i++)
-		     {
-			fields.add(tokens[i]);
-		     }
-		  }
+		  String field = tokens[2];
 		  
 		  HashMap<String,ByteIterator> result=new HashMap<String,ByteIterator>();
-		  int ret=db.read(table,tokens[1],fields,result);
+		  int ret=db.read(table,tokens[1],field,result);
 		  System.out.println("Return code: "+ret);
 		  for (Map.Entry<String,ByteIterator> ent : result.entrySet())
 		  {
@@ -304,26 +294,16 @@ public class CommandLine
 	    }
 	    else if (tokens[0].compareTo("scan")==0)
 	    {
-	       if (tokens.length<3)
+	       if (tokens.length<3||tokens.length>4)
 	       {
-		  System.out.println("Error: syntax is \"scan keyname scanlength [field1 field2 ...]\"");
+		  System.out.println("Error: syntax is \"scan keyname scanlength fieldname\"");
 	       }
-	       else 
+	       else
 	       {
-		  Set<String> fields=null;
-
-		  if (tokens.length>3)
-		  {
-		     fields=new HashSet<String>();
-		     
-		     for (int i=3; i<tokens.length; i++)
-		     {
-			fields.add(tokens[i]);
-		     }
-		  }
+		  String field=tokens.length==4?tokens[3]:null;
 		  
 		  Vector<HashMap<String,ByteIterator>> results=new Vector<HashMap<String,ByteIterator>>();
-		  int ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),fields,results);
+		  int ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),field,results);
 		  System.out.println("Return code: "+ret);
 		  int record=0;
 		  if (results.size()==0)

@@ -154,25 +154,23 @@ public class ElasticSearchClient extends DB {
      *
      * @param table The name of the table
      * @param key The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
+     * @param field The field to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error or "not found".
      */
     @Override
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    public int read(String table, String key, String field, HashMap<String, ByteIterator> result) {
         try {
             final GetResponse response = client.prepareGet(indexKey, table, key)
                     .execute()
                     .actionGet();
 
             if (response.isExists()) {
-                if (fields != null) {
-                    for (String field : fields) {
-                        result.put(field, new StringByteIterator((String) response.getSource().get(field)));
-                    }
-                } else {
-                    for (String field : response.getSource().keySet()) {
-                        result.put(field, new StringByteIterator((String) response.getSource().get(field)));
+                if (field != null)
+                    result.put(field, new StringByteIterator((String) response.getSource().get(field)));
+                else {
+                    for (String f : response.getSource().keySet()) {
+                        result.put(f, new StringByteIterator((String) response.getSource().get(field)));
                     }
                 }
                 return 0;
@@ -227,14 +225,14 @@ public class ElasticSearchClient extends DB {
      * @param table The name of the table
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields The list of fields to read, or null for all of them
+     * @param field The field to read, or null for all of them
      * @param result A Vector of HashMaps, where each HashMap is a set
      * field/value pairs for one record
      * @return Zero on success, a non-zero error code on error. See this class's
      * description for a discussion of error codes.
      */
     @Override
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    public int scan(String table, String startkey, int recordcount, String field, Vector<HashMap<String, ByteIterator>> result) {
         try {
             final RangeFilterBuilder filter = rangeFilter("_id").gte(startkey);
             final SearchResponse response = client.prepareSearch(indexKey)
@@ -248,11 +246,9 @@ public class ElasticSearchClient extends DB {
             HashMap<String, ByteIterator> entry;
 
             for (SearchHit hit : response.getHits()) {
-                entry = new HashMap<String, ByteIterator>(fields.size());
+                entry = new HashMap<String, ByteIterator>();
+                entry.put(field, new StringByteIterator((String) hit.getSource().get(field)));
 
-                for (String field : fields) {
-                    entry.put(field, new StringByteIterator((String) hit.getSource().get(field)));
-                }
 
                 result.add(entry);
             }

@@ -68,12 +68,12 @@ public abstract class MemcachedCompatibleClient extends DB {
     protected abstract MemcachedClient createMemcachedClient() throws Exception;
 
     @Override
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    public int read(String table, String key, String field, HashMap<String, ByteIterator> result) {
         try {
             GetFuture<Object> future = client.asyncGet(createQualifiedKey(table, key));
             Object document = future.get();
             if (document != null) {
-                fromJson((String) document, fields, result);
+                fromJson((String) document, Collections.singleton(field), result);
             }
             return OK;
         } catch (Exception e) {
@@ -85,7 +85,7 @@ public abstract class MemcachedCompatibleClient extends DB {
     }
 
     @Override
-    public int scan(String table, String startKey, int limit, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    public int scan(String table, String startKey, int limit, String field, Vector<HashMap<String, ByteIterator>> result) {
         throw new IllegalStateException("Range scan is not supported");
     }
 

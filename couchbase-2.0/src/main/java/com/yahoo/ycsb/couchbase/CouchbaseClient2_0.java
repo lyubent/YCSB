@@ -105,12 +105,12 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     }
 
     @Override
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    public int read(String table, String key, String field, HashMap<String, ByteIterator> result) {
         try {
             GetFuture<Object> future = couchbaseClient.asyncGet(createQualifiedKey(table, key));
             Object document = future.get();
             if (document != null) {
-                fromJson((String) document, fields, result);
+                fromJson((String) document, Collections.singleton(field), result);
             }
             return OK;
         } catch (Exception e) {
