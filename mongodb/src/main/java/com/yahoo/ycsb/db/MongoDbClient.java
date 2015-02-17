@@ -192,10 +192,9 @@ public class MongoDbClient extends DB {
      *
      * @param table The name of the table
      * @param key The record key of the record to delete.
-     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
      */
     @Override
-    public int delete(String table, String key) {
+    public void delete(String table, String key) {
         com.mongodb.DB db = null;
         try {
             db = mongos[random.nextInt(mongos.length)].getDB(database);
@@ -203,11 +202,9 @@ public class MongoDbClient extends DB {
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
             WriteResult res = collection.remove(q, writeConcern);
-            return 0;
         }
         catch (Exception e) {
-            System.err.println(e.toString());
-            return 1;
+            throw new RuntimeException("Error deleting key " + key, e);
         }
         finally {
             if (db != null) {
@@ -224,9 +221,8 @@ public class MongoDbClient extends DB {
      * @param table The name of the table
      * @param key The record key of the record to insert.
      * @param values A HashMap of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
      */
-    public int insert(String table, String key, Map<String, ByteIterator> values) {
+    public void insert(String table, String key, Map<String, ByteIterator> values) {
         com.mongodb.DB db = null;
         try {
             db = mongos[random.nextInt(mongos.length)].getDB(database);
@@ -237,11 +233,9 @@ public class MongoDbClient extends DB {
                 r.put(k, values.get(k).toArray());
             }
             WriteResult res = collection.insert(r, writeConcern);
-            return 0;
         }
         catch (Exception e) {
-            e.printStackTrace();
-            return 1;
+            throw new RuntimeException("Error inserting key " + key, e);
         }
         finally {
             if (db != null) {
@@ -259,14 +253,13 @@ public class MongoDbClient extends DB {
      * @param key The record key of the record to read.
      * @param field The field to read
      * @param result A Map of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error or "not found".
      */
-    public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
+    public void readOne(String table, String key, String field, Map<String,ByteIterator> result) {
 
         DBObject fieldsToReturn = new BasicDBObject();
         fieldsToReturn.put(field, INCLUDE);
 
-        return read(table, key, result, fieldsToReturn);
+        read(table, key, result, fieldsToReturn);
     }
 
     @Override
@@ -277,14 +270,13 @@ public class MongoDbClient extends DB {
      * @param table The name of the table
      * @param key The record key of the record to read.
      * @param result A Map of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error or "not found".
      */
-    public int readAll(String table, String key, Map<String,ByteIterator> result) {
-        return read(table, key, result, null);
+    public void readAll(String table, String key, Map<String,ByteIterator> result) {
+        read(table, key, result, null);
     }
 
 
-    public int read(String table, String key, Map<String, ByteIterator> result,
+    public void read(String table, String key, Map<String, ByteIterator> result,
             DBObject fieldsToReturn) {
         com.mongodb.DB db = null;
         try {
@@ -298,11 +290,11 @@ public class MongoDbClient extends DB {
 
             if (queryResult != null) {
                 result.putAll(resultify(queryResult));
+            } else {
+                throw new RuntimeException("Problem reading key " + key);
             }
-            return queryResult != null ? 0 : 1;
         } catch (Exception e) {
-            System.err.println(e.toString());
-            return 1;
+            throw new RuntimeException("Error reading key " + key, e);
         } finally {
             if (db!=null)
             {
@@ -319,14 +311,13 @@ public class MongoDbClient extends DB {
      * @param table The name of the table
      * @param key The record key of the record to write.
      * @param value The value to update in the key record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
-    public int updateOne(String table, String key, String field, ByteIterator value) {
+    public void updateOne(String table, String key, String field, ByteIterator value) {
 
         DBObject fieldsToSet = new BasicDBObject();
         fieldsToSet.put(key, value.toArray());
 
-        return update(table, key, fieldsToSet);
+        update(table, key, fieldsToSet);
     }
 
     /**
@@ -336,9 +327,8 @@ public class MongoDbClient extends DB {
      * @param table The name of the table
      * @param key The record key of the record to write.
      * @param values A Map of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
-    public int updateAll(String table, String key, Map<String,ByteIterator> values) {
+    public void updateAll(String table, String key, Map<String,ByteIterator> values) {
 
         DBObject fieldsToSet = new BasicDBObject();
         Iterator<String> keys = values.keySet().iterator();
@@ -347,10 +337,10 @@ public class MongoDbClient extends DB {
             fieldsToSet.put(tmpKey, values.get(tmpKey).toArray());
         }
 
-        return update(table, key, fieldsToSet);
+        update(table, key, fieldsToSet);
     }
 
-    public int update(String table, String key, DBObject fieldsToSet) {
+    public void update(String table, String key, DBObject fieldsToSet) {
         com.mongodb.DB db = null;
         try {
             db = mongos[random.nextInt(mongos.length)].getDB(database);
@@ -364,10 +354,8 @@ public class MongoDbClient extends DB {
             u.put("$set", fieldsToSet);
             WriteResult res = collection.update(q, u, false, false,
                     writeConcern);
-            return 0;
         } catch (Exception e) {
-            System.err.println(e.toString());
-            return 1;
+            throw new RuntimeException("Error updating key " + key, e);
         } finally {
             if (db!=null)
             {
@@ -385,11 +373,10 @@ public class MongoDbClient extends DB {
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
      * @param result A List of Maps, where each Map is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
-    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
+    public void scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
 
-        return scan(table, startkey, recordcount, result);
+        scan(table, startkey, recordcount, result);
     }
 
     @Override
@@ -402,14 +389,13 @@ public class MongoDbClient extends DB {
      * @param recordcount The number of records to read
      * @param field The field to read
      * @param result A List of Maps, where each Map is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
-    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
+    public void scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
 
-        return scan(table, startkey, recordcount, result);
+        scan(table, startkey, recordcount, result);
     }
 
-    public int scan(String table, String startkey, int recordcount,
+    public void scan(String table, String startkey, int recordcount,
             List<Map<String, ByteIterator>> result) {
         com.mongodb.DB db = null;
         DBCursor cursor = null;
@@ -424,11 +410,8 @@ public class MongoDbClient extends DB {
             while (cursor.hasNext()) {
                 result.add(resultify(cursor.next()));
             }
-
-            return 0;
         } catch (Exception e) {
-            System.err.println(e.toString());
-            return 1;
+            throw new RuntimeException("Error scanning startkey " + startkey, e);
         }
         finally
         {
