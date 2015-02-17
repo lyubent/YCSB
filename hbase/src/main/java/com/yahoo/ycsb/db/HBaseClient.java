@@ -171,18 +171,18 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         }
     }
 
-    public int readOne(String table, String key, String field, Map<String, ByteIterator> result)
+    public void readOne(String table, String key, String field, Map<String, ByteIterator> result)
     {
         Get g = new Get(Bytes.toBytes(key));
         g.addColumn(columnFamilyBytes, Bytes.toBytes(field));
-        return read(table, key, g, result);
+        read(table, key, g, result);
     }
 
-    public int readAll(String table, String key, Map<String, ByteIterator> result)
+    public void readAll(String table, String key, Map<String, ByteIterator> result)
     {
         Get g = new Get(Bytes.toBytes(key));
         g.addFamily(columnFamilyBytes);
-        return read(table, key, g, result);
+        read(table, key, g, result);
     }
 
     /**
@@ -192,9 +192,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param table  The name of the table
      * @param key    The record key of the record to read.
      * @param result A HashMap of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error
      */
-    public int read(String table, String key, Get g, Map<String, ByteIterator> result)
+    public void read(String table, String key, Get g, Map<String, ByteIterator> result)
     {
         HTableInterface t = null;
         Result r = null;
@@ -210,7 +209,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         catch (IOException e)
         {
             System.err.println("Error doing get: " + e);
-            return ServerError;
         }
         finally
         {
@@ -232,21 +230,23 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                                " cells returned");
         }
 
-        return result.isEmpty() ? NoMatchingRecord : Ok;
+        if (result.isEmpty()) {
+            System.out.println("No matching record found.");
+        }
     }
 
-    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
+    public void scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
     {
         Scan s = new Scan(Bytes.toBytes(startkey));
         s.addFamily(columnFamilyBytes);
-        return scan(table, recordcount, s, result);
+        scan(table, recordcount, s, result);
     }
 
-    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
+    public void scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
     {
         Scan s = new Scan(Bytes.toBytes(startkey));
         s.addColumn(columnFamilyBytes, Bytes.toBytes(field));
-        return scan(table, recordcount, s, result);
+        scan(table, recordcount, s, result);
     }
 
     /**
@@ -256,9 +256,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param table       The name of the table
      * @param recordcount The number of records to read
      * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error
      */
-    public int scan(String table, int recordcount, Scan s, List<Map<String, ByteIterator>> result)
+    public void scan(String table, int recordcount, Scan s, List<Map<String, ByteIterator>> result)
     {
         // Assume recordcount is small enough to bring back in one call
         s.setCaching(recordcount);
@@ -305,7 +304,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             {
                 System.err.println("Error in getting/parsing scan result: " + e);
             }
-            return ServerError;
         }
         finally
         {
@@ -316,10 +314,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             putHTable(t);
         }
 
-        return result.isEmpty() ? NoMatchingRecord : Ok;
+        if (result.isEmpty()) {
+            System.out.println("No matching record found.");
+        }
     }
 
-    public int updateOne(String table, String key, String field, ByteIterator value)
+    public void updateOne(String table, String key, String field, ByteIterator value)
     {
         Put p = new Put(Bytes.toBytes(key));
         if (debug)
@@ -328,10 +328,10 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         }
         p.setDurability(durability);
         p.add(columnFamilyBytes, Bytes.toBytes(field), value.toArray());
-        return update(table, key, p);
+        update(table, key, p);
     }
 
-    public int updateAll(String table, String key, Map<String, ByteIterator> values)
+    public void updateAll(String table, String key, Map<String, ByteIterator> values)
     {
         Put p = new Put(Bytes.toBytes(key));
         p.setDurability(durability);
@@ -346,12 +346,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             }
             p.add(columnFamilyBytes, Bytes.toBytes(field), value.toArray());
         }
-        return update(table, key, p);
+        update(table, key, p);
     }
 
-    public int insert(String table, String key, Map<String, ByteIterator> values)
+    public void insert(String table, String key, Map<String, ByteIterator> values)
     {
-        return updateAll(table, key, values);
+        updateAll(table, key, values);
     }
 
     /**
@@ -361,9 +361,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      *
      * @param table  The name of the table
      * @param key    The record key of the record to write
-     * @return Zero on success, a non-zero error code on error
      */
-    public int update(String table, String key, Put p)
+    public void update(String table, String key, Put p)
     {
         if (debug)
         {
@@ -381,13 +380,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             {
                 System.err.println("Error doing put: " + e);
             }
-            return ServerError;
         }
         finally
         {
             putHTable(t);
         }
-        return Ok;
     }
 
     /**
@@ -395,9 +392,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      *
      * @param table The name of the table
      * @param key   The record key of the record to delete.
-     * @return Zero on success, a non-zero error code on error
      */
-    public int delete(String table, String key)
+    public void delete(String table, String key)
     {
         if (debug)
         {
@@ -415,13 +411,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             {
                 System.err.println("Error doing delete: " + e);
             }
-            return ServerError;
         }
         finally
         {
             putHTable(t);
         }
-        return Ok;
     }
 }
 
