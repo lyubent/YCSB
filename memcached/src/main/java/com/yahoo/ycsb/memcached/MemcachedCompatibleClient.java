@@ -40,11 +40,6 @@ public abstract class MemcachedCompatibleClient extends DB {
     private static final String TEMPORARY_FAILURE_MESSAGE = "Temporary failure";
     private static final String CANCELLED_MESSAGE = "cancelled";
 
-    public static final int OK = 0;
-    public static final int ERROR = -1;
-    public static final int NOT_FOUND = -2;
-    public static final int RETRY = 1;
-
     public static final String SHUTDOWN_TIMEOUT_MILLIS_PROPERTY = "couchbase.shutdownTimeoutMillis";
     public static final String DEFAULT_SHUTDOWN_TIMEOUT_MILLIS = "30000";
     public static final String OBJECT_EXPIRATION_TIME_PROPERTY = "couchbase.objectExpirationTime";
@@ -67,110 +62,101 @@ public abstract class MemcachedCompatibleClient extends DB {
     protected abstract MemcachedClient createMemcachedClient() throws Exception;
 
     @Override
-    public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
+    public void readOne(String table, String key, String field, Map<String,ByteIterator> result) {
 
-        return read(table, key, Collections.singleton(field), result);
+        read(table, key, Collections.singleton(field), result);
     }
 
     @Override
-    public int readAll(String table, String key, Map<String,ByteIterator> result) {
-        return read(table, key, null, result);
+    public void readAll(String table, String key, Map<String,ByteIterator> result) {
+        read(table, key, null, result);
     }
 
-    public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+    public void read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
         try {
             GetFuture<Object> future = client.asyncGet(createQualifiedKey(table, key));
             Object document = future.get();
             if (document != null) {
                 fromJson((String) document, fields, result);
             }
-            return OK;
         } catch (Exception e) {
-            if (log.isErrorEnabled()) {
-                log.error("Error encountered", e);
-            }
-            return ERROR;
+            throw new RuntimeException("Error encountered", e);
         }
     }
 
     @Override
-    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
+    public void scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
         throw new IllegalStateException("Range scan is not supported");
     }
 
     @Override
-    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
+    public void scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
         throw new IllegalStateException("Range scan is not supported");
     }
 
     @Override
-    public int updateOne(String table, String key, String field, ByteIterator value) {
+    public void updateOne(String table, String key, String field, ByteIterator value) {
 
-        return update(table, key, Collections.singletonMap(field, value));
+        update(table, key, Collections.singletonMap(field, value));
     }
 
     @Override
-    public int updateAll(String table, String key, Map<String,ByteIterator> values) {
+    public void updateAll(String table, String key, Map<String,ByteIterator> values) {
 
-        return update(table, key, values);
+        update(table, key, values);
     }
 
-    public int update(String table, String key, Map<String,ByteIterator> values) {
+    public void update(String table, String key, Map<String,ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future = client.replace(key, objectExpirationTime, toJson(values));
-            return getReturnCode(future);
+            processFuture(future);
         } catch (Exception e) {
-            if (log.isErrorEnabled()) {
-                log.error("Error updating value with key: " + key, e);
-            }
-            return ERROR;
+            throw new RuntimeException("Error updating value with key: " + key, e);
         }
     }
 
     @Override
-    public int insert(String table, String key, Map<String, ByteIterator> values) {
+    public void insert(String table, String key, Map<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future = client.add(key, objectExpirationTime, toJson(values));
-            return getReturnCode(future);
+            processFuture(future);
         } catch (Exception e) {
-            if (log.isErrorEnabled()) {
-                log.error("Error inserting value", e);
-            }
-            return ERROR;
+            throw new RuntimeException("Error inserting value", e);
         }
     }
 
     @Override
-    public int delete(String table, String key) {
+    public void delete(String table, String key) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future = client.delete(key);
-            return getReturnCode(future);
+            processFuture(future);
         } catch (Exception e) {
-            if (log.isErrorEnabled()) {
-                log.error("Error deleting value", e);
-            }
-            return ERROR;
+            throw new RuntimeException("Error deleting value", e);
         }
     }
 
-    public int query(String table, String key, int limit) {
+    public void query(String table, String key, int limit) {
         throw new UnsupportedOperationException("Query not implemented");
     };
 
-    protected int getReturnCode(OperationFuture<Boolean> future) {
+    protected void processFuture(OperationFuture<Boolean> future) {
         if (checkOperationStatus) {
             if(future.getStatus().isSuccess()) {
-                return OK;
+                if (log.isInfoEnabled())
+                    log.info("Future operation successful.");
             }
             if(TEMPORARY_FAILURE_MESSAGE.equals(future.getStatus().getMessage()) || CANCELLED_MESSAGE.equals(future.getStatus().getMessage())) {
-                return RETRY;
+                if(log.isWarnEnabled())
+                    log.warn("Future operation requires retry.");
+                return;
             }
-            return ERROR;
+            if(log.isErrorEnabled())
+                log.error("Future operation failed.");
         } else {
-            return OK;
+            log.info("Future operation successful.");
         }
     }
 

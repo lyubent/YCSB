@@ -105,24 +105,20 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     }
 
     @Override
-    public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+    public void read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
         try {
             GetFuture<Object> future = couchbaseClient.asyncGet(createQualifiedKey(table, key));
             Object document = future.get();
             if (document != null) {
                 fromJson((String) document, fields, result);
             }
-            return OK;
         } catch (Exception e) {
-            if (log.isErrorEnabled()) {
-                log.error("Error encountered", e);
-            }
-            return ERROR;
+            throw new RuntimeException("Error encountered", e);
         }
     }
 
     @Override
-    public int update(String table, String key, Map<String, ByteIterator> values) {
+    public void update(String table, String key, Map<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future;
@@ -134,17 +130,14 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
                 future = couchbaseClient.replace(key, objectExpirationTime, toJson(values),     //this is the method of CouchbaseClient, more specific
                         persistTo, replicateTo);
             }
-            return getReturnCode(future);
+            processFuture(future);
         } catch (Exception e) {
-            if (log.isErrorEnabled()) {
-                log.error("Error updating value with key: " + key, e);
-            }
-            return ERROR;
+            throw new RuntimeException("Error updating value with key: " + key, e);
         }
     }
 
     @Override
-    public int insert(String table, String key, Map<String, ByteIterator> values) {
+    public void insert(String table, String key, Map<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future;
@@ -154,31 +147,25 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
                 future = couchbaseClient.add(key, objectExpirationTime, toJson(values),
                     persistTo, replicateTo);
             }
-            return getReturnCode(future);
+            processFuture(future);
         } catch (Exception e) {
-            if (log.isErrorEnabled()) {
-                log.error("Error inserting value", e);
-            }
-            return ERROR;
+            throw new RuntimeException("Error inserting value", e);
         }
     }
 
     @Override
-    public int delete(String table, String key) {
+    public void delete(String table, String key) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future = client.delete(key);
-            return getReturnCode(future);
+            processFuture(future);
         } catch (Exception e) {
-            if (log.isErrorEnabled()) {
-                log.error("Error deleting value", e);
-            }
-            return ERROR;
+            throw new RuntimeException("Error deleting value", e);
         }
     }
 
     @Override
-    public int query(String table, String key, int limit) {
+    public void query(String table, String key, int limit) {
         int rnd_ddoc = generator.nextInt(ddoc_names.length);
         int rnd_view = generator.nextInt(view_names.length);
         int startIndex = 3 * rnd_ddoc + rnd_view;
@@ -193,11 +180,8 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
         ViewResponse response = couchbaseClient.query(view, query);
 
         Collection errors = response.getErrors();
-        if (errors.isEmpty()) {
-            return OK;
-        } else {
-            return ERROR;
-        }
+        if (!errors.isEmpty() && log.isErrorEnabled())
+            log.error(errors.size() + " Errors encounter during query:");
     }
 
     private View get_view(int rnd_ddoc, int rnd_view) {
@@ -220,11 +204,20 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
         return query;
     }
 
-    protected int getReturnCode(OperationFuture<Boolean> future) {
+    protected void processFuture(OperationFuture<Boolean> future) {
         if (checkOperationStatus) {
-            return future.getStatus().isSuccess() ? OK : ERROR;
+            if (future.getStatus().isSuccess()) {
+                if (log.isInfoEnabled())
+                    log.info("Future operation successful.");
+            }
+            else {
+                if (log.isErrorEnabled())
+                    log.error("");
+            }
+
+
         } else {
-            return OK;
+            log.info("Future operation successful.");
         }
     }
 }
