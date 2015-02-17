@@ -285,12 +285,10 @@ public class CommandLine
 	       {
 		  String field=tokens.length==4?tokens[3]:null;
 		  HashMap<String,ByteIterator> result=new HashMap<String,ByteIterator>();
-		  int ret;
 		  if (field == null)
-		    ret=db.readOne(table,tokens[1],field,result);
+		    db.readOne(table,tokens[1],field,result);
 		  else
-		    ret=db.readAll(table,tokens[1],result);
-		  System.out.println("Return code: "+ret);
+		    db.readAll(table,tokens[1],result);
 		  for (Map.Entry<String,ByteIterator> ent : result.entrySet())
 		  {
 		     System.out.println(ent.getKey()+"="+ent.getValue());
@@ -307,12 +305,10 @@ public class CommandLine
 	       {
 		  String field=tokens.length==4?tokens[3]:null;
 		  List<Map<String,ByteIterator>> results=new ArrayList<Map<String, ByteIterator>>();
-		  int ret;
 		  if (field == null)
-		   ret=db.scanAll(table,tokens[1],Integer.parseInt(tokens[2]),results);
+		   db.scanAll(table,tokens[1],Integer.parseInt(tokens[2]),results);
 		  else
-		   ret=db.scanOne(table,tokens[1],Integer.parseInt(tokens[2]),field,results);
-		  System.out.println("Return code: "+ret);
+		   db.scanOne(table,tokens[1],Integer.parseInt(tokens[2]),field,results);
 		  int record=0;
 		  if (results.size()==0)
 		  {
@@ -349,17 +345,15 @@ public class CommandLine
 		     values.put(nv[0],new StringByteIterator(nv[1]));
 		  }
 
-		  int ret;
 		  if(values.size() == 1)
 		  {
 		   Map.Entry<String, ByteIterator> value = values.entrySet().iterator().next();
-		   ret = db.updateOne(table, tokens[1], value.getKey(), value.getValue());
+		   db.updateOne(table, tokens[1], value.getKey(), value.getValue());
 		  }
 		  else
 		  {
-		   ret = db.updateAll(table, tokens[1], values);
+		   db.updateAll(table, tokens[1], values);
 		  }
-		  System.out.println("Return code: "+ret);
 	       }		  
 	    }
 	    else if (tokens[0].compareTo("insert")==0)
@@ -378,8 +372,7 @@ public class CommandLine
 		     values.put(nv[0],new StringByteIterator(nv[1]));
 		  }
 
-		  int ret=db.insert(table,tokens[1],values);
-		  System.out.println("Return code: "+ret);
+		  db.insert(table,tokens[1],values);
 	       }		  
 	    }
 	    else if (tokens[0].compareTo("delete")==0)
@@ -390,8 +383,7 @@ public class CommandLine
 	       }
 	       else 
 	       {
-		  int ret=db.delete(table,tokens[1]);
-		  System.out.println("Return code: "+ret);
+		  db.delete(table,tokens[1]);
 	       }		  
 	    }
 	    else

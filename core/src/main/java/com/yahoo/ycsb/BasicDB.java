@@ -88,9 +88,8 @@ public class BasicDB extends DB
 	 * @param table The name of the table
 	 * @param key The record key of the record to read.
 	 * @param result A Map of field/value pairs for the result
-	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int readAll(String table, String key, Map<String,ByteIterator> result) {
+	public void readAll(String table, String key, Map<String,ByteIterator> result) {
         delay();
 
         if (verbose)
@@ -99,8 +98,6 @@ public class BasicDB extends DB
             System.out.print("<all fields>");
             System.out.println("]");
         }
-
-        return 0;
     }
 
     /**
@@ -110,9 +107,8 @@ public class BasicDB extends DB
      * @param key The record key of the record to read.
      * @param field The field to read
      * @param result A Map of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error
      */
-    public int readOne(String table, String key, String field, Map<String,ByteIterator> result)
+    public void readOne(String table, String key, String field, Map<String,ByteIterator> result)
     {
         delay();
 
@@ -121,8 +117,6 @@ public class BasicDB extends DB
             System.out.print(field+" ");
             System.out.println("]");
 		}
-
-        return 0;
     }
 
 	/**
@@ -132,9 +126,8 @@ public class BasicDB extends DB
 	 * @param startkey The record key of the first record to read.
 	 * @param recordcount The number of records to read
 	 * @param result A List of Maps, where each Map is a set field/value pairs for one record
-	 * @return Zero on success, a non-zero error code on error
 	 */
-    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
+    public void scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
     {
         delay();
 
@@ -144,8 +137,6 @@ public class BasicDB extends DB
             System.out.print("<all fields>");
             System.out.println("]");
         }
-
-        return 0;
     }
 
     /**
@@ -156,9 +147,8 @@ public class BasicDB extends DB
      * @param recordcount The number of records to read
      * @param field The field to read
      * @param result A List of Maps, where each Map is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
-    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
+    public void scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
     {
         delay();
 
@@ -168,11 +158,9 @@ public class BasicDB extends DB
             System.out.print(field+" ");
             System.out.println("]");
         }
-
-        return 0;
     }
 
-	public int scan(String table, String startkey, int recordcount, Set<String> fields, List<Map<String,ByteIterator>> result) {
+	public void scan(String table, String startkey, int recordcount, Set<String> fields, List<Map<String,ByteIterator>> result) {
 		delay();
 
 		if (verbose)
@@ -192,8 +180,6 @@ public class BasicDB extends DB
 
 			System.out.println("]");
 		}
-
-		return 0;
 	}
 
     /**
@@ -203,14 +189,13 @@ public class BasicDB extends DB
      * @param table The name of the table
      * @param key The record key of the record to write.
      * @param value The value to update in the key record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
     @Override
-    public int updateOne(String table, String key, String field, ByteIterator value)
+    public void updateOne(String table, String key, String field, ByteIterator value)
     {
         Map<String, ByteIterator> values = new HashMap<String, ByteIterator>(1);
         values.put(field, value);
-        return update(table, key, values);
+        update(table, key, values);
     }
 
     /**
@@ -220,15 +205,14 @@ public class BasicDB extends DB
      * @param table The name of the table
      * @param key The record key of the record to write.
      * @param values A Map of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
     @Override
-    public int updateAll(String table, String key, Map<String,ByteIterator> values)
+    public void updateAll(String table, String key, Map<String,ByteIterator> values)
     {
-        return update(table, key, values);
+        update(table, key, values);
     }
 
-	private int update(String table, String key, Map<String,ByteIterator> values) {
+	private void update(String table, String key, Map<String,ByteIterator> values) {
 		delay();
 
 		if (verbose)
@@ -243,8 +227,6 @@ public class BasicDB extends DB
 			}
 			System.out.println("]");
 		}
-
-		return 0;
 	}
 
 	/**
@@ -255,9 +237,8 @@ public class BasicDB extends DB
      * @param table The name of the table
      * @param key The record key of the record to insert.
      * @param values A Map of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error
 	 */
-	public int insert(String table, String key, Map<String, ByteIterator> values)
+	public void insert(String table, String key, Map<String, ByteIterator> values)
 	{
 		delay();
 
@@ -274,8 +255,6 @@ public class BasicDB extends DB
 
 			System.out.println("]");
 		}
-
-		return 0;
 	}
 
 
@@ -284,9 +263,8 @@ public class BasicDB extends DB
 	 *
 	 * @param table The name of the table
 	 * @param key The record key of the record to delete.
-	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int delete(String table, String key)
+	public void delete(String table, String key)
 	{
 		delay();
 
@@ -294,8 +272,6 @@ public class BasicDB extends DB
 		{
 			System.out.println("DELETE "+table+" "+key);
 		}
-
-		return 0;
 	}
 
 	/**

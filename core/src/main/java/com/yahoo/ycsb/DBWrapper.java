@@ -43,7 +43,7 @@ public class DBWrapper extends DB {
     interface DBOperation {
         String name();
         int maxRetries();
-        int go();
+        void go();
     }
 
     public DBWrapper(DB db, Properties p) {
@@ -107,8 +107,8 @@ public class DBWrapper extends DB {
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int readAll(final String table, final String key, final Map<String, ByteIterator> result) {
-        return operation(new DBOperation() {
+    public void readAll(final String table, final String key, final Map<String, ByteIterator> result) {
+        operation(new DBOperation() {
             @Override
             public String name() {
                 return "READ";
@@ -120,8 +120,8 @@ public class DBWrapper extends DB {
             }
 
             @Override
-            public int go() {
-                return _db.readAll(table, key, result);
+            public void go() {
+                _db.readAll(table, key, result);
             }
         });
     }
@@ -133,11 +133,10 @@ public class DBWrapper extends DB {
      * @param key The record key of the record to read.
      * @param field The field to read
      * @param result A Map of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int readOne(final String table, final String key, final String field, final Map<String, ByteIterator> result) {
-        return operation(new DBOperation() {
+    public void readOne(final String table, final String key, final String field, final Map<String, ByteIterator> result) {
+        operation(new DBOperation() {
             @Override
             public String name() {
                 return "READ";
@@ -149,8 +148,8 @@ public class DBWrapper extends DB {
             }
 
             @Override
-            public int go() {
-                return _db.readOne(table, key, field, result);
+            public void go() {
+                _db.readOne(table, key, field, result);
             }
         });
     }
@@ -162,15 +161,13 @@ public class DBWrapper extends DB {
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
      * @param result A List of Maps, where each Map is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error
      */
-    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
+    public void scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
         long st = System.nanoTime();
-        int res = _db.scanAll(table, startkey, recordcount, result);
+        _db.scanAll(table, startkey, recordcount, result);
         long en = System.nanoTime();
         _measurements.measure("SCAN", (int) ((en - st) / 1000));
-        _measurements.reportReturnCode("SCAN", res);
-        return res;
+        _measurements.reportReturnCode("SCAN");
     }
 
     /**
@@ -182,15 +179,13 @@ public class DBWrapper extends DB {
      * @param recordcount The number of records to read
      * @param field       The field to read
      * @param result      A List of Maps, where each Map is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error
      */
-    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
+    public void scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
         long st = System.nanoTime();
-        int res = _db.scanOne(table, startkey, recordcount, field, result);
+        _db.scanOne(table, startkey, recordcount, field, result);
         long en = System.nanoTime();
         _measurements.measure("SCAN", (int) ((en - st) / 1000));
-        _measurements.reportReturnCode("SCAN", res);
-        return res;
+        _measurements.reportReturnCode("SCAN");
     }
 
     /**
@@ -200,10 +195,9 @@ public class DBWrapper extends DB {
      * @param table  The name of the table
      * @param key    The record key of the record to write.
      * @param value  The value to update in the key record
-     * @return Zero on success, a non-zero error code on error
      */
-    public int updateOne(final String table, final String key, final String field, final ByteIterator value) {
-        return operation(new DBOperation() {
+    public void updateOne(final String table, final String key, final String field, final ByteIterator value) {
+        operation(new DBOperation() {
             @Override
             public String name() {
                 return "UPDATE";
@@ -215,8 +209,8 @@ public class DBWrapper extends DB {
             }
 
             @Override
-            public int go() {
-                return _db.updateOne(table, key, field, value);
+            public void go() {
+                _db.updateOne(table, key, field, value);
             }
         });
     }
@@ -228,10 +222,9 @@ public class DBWrapper extends DB {
      * @param table  The name of the table
      * @param key    The record key of the record to write.
      * @param values A Map of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error.
      */
-    public int updateAll(final String table, final String key, final Map<String,ByteIterator> values) {
-        return operation(new DBOperation() {
+    public void updateAll(final String table, final String key, final Map<String,ByteIterator> values) {
+        operation(new DBOperation() {
             @Override
             public String name() {
                 return "UPDATE";
@@ -243,8 +236,8 @@ public class DBWrapper extends DB {
             }
 
             @Override
-            public int go() {
-                return _db.updateAll(table, key, values);
+            public void go() {
+                _db.updateAll(table, key, values);
             }
         });
     }
@@ -257,10 +250,9 @@ public class DBWrapper extends DB {
      * @param table  The name of the table
      * @param key    The record key of the record to insert.
      * @param values A Map of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error
      */
-    public int insert(final String table, final String key, final Map<String, ByteIterator> values) {
-        return operation(new DBOperation() {
+    public void insert(final String table, final String key, final Map<String, ByteIterator> values) {
+        operation(new DBOperation() {
             @Override
             public String name() {
                 return "INSERT";
@@ -272,28 +264,37 @@ public class DBWrapper extends DB {
             }
 
             @Override
-            public int go() {
-                return _db.insert(table, key, values);
+            public void go() {
+                _db.insert(table, key, values);
             }
         });
     }
 
-    private int operation(DBOperation op) {
+    private void operation(DBOperation op) {
         long st = System.nanoTime();
-        int res = op.go();
-        int retryCount;
-        for (retryCount = 0; res != 0 && retryCount < op.maxRetries(); retryCount++) {
-            if(retryDelay > 0) {
-                delay(retryDelay);
+        int retryCount = 0;
+        boolean success = false;
+
+        while (!success) {
+            if (retryCount < op.maxRetries())
+                break;
+
+            try {
+                if(retryDelay > 0)
+                    delay(retryDelay);
+                op.go();
+                success = true;
+            } catch (Throwable t) {
+                t.printStackTrace();
+                if (op.maxRetries() > 0 && retryCount < op.maxRetries())
+                    System.out.println("Retrying for " + retryCount + "/" + op.maxRetries() + " attempt.");
+                retryCount++;
             }
-            res = op.go();
         }
         long en = System.nanoTime();
         _measurements.measure(op.name(), (int) ((en - st) / 1000));
         _measurements.reportRetryCount(op.name(), retryCount);
-        _measurements.reportReturnCode(op.name(), res);
-        return res;
-
+        _measurements.reportReturnCode(op.name());
     }
 
     private void delay(int ms) {
@@ -309,14 +310,12 @@ public class DBWrapper extends DB {
      *
      * @param table The name of the table
      * @param key   The record key of the record to delete.
-     * @return Zero on success, a non-zero error code on error
      */
-    public int delete(String table, String key) {
+    public void delete(String table, String key) {
         long st = System.nanoTime();
-        int res = _db.delete(table, key);
+        _db.delete(table, key);
         long en = System.nanoTime();
         _measurements.measure("DELETE", (int) ((en - st) / 1000));
-        _measurements.reportReturnCode("DELETE", res);
-        return res;
+        _measurements.reportReturnCode("DELETE");
     }
 }

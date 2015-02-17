@@ -122,7 +122,7 @@ public class Measurements
       /**
        * Report a return code for a single DB operaiton.
        */
-	public void reportReturnCode(String operation, int code)
+	public void reportReturnCode(String operation)
 	{
 		if (!data.containsKey(operation))
 		{
@@ -134,7 +134,7 @@ public class Measurements
 				}
 			}
 		}
-		data.get(operation).reportReturnCode(code);
+		data.get(operation).reportReturnCode(0);
 	}
 
     /**

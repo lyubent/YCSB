@@ -449,23 +449,21 @@ public class CoreWorkload extends Workload {
      * effects other than DB operations.
      */
     public boolean doInsert(DB db, Object threadstate) {
-        int result = -1;
+        boolean result = false;
         long keynum = keynumGenerator.startInsert();
         try {
             String dbkey = buildKeyName(keynum);
             HashMap<String, ByteIterator> values = buildValues();
-            result = db.insert(table, dbkey, values);
+            db.insert(table, dbkey, values);
+            result = true;
         } finally {
             keynumGenerator.completeInsert(keynum);
         }
 
         if (ignoreinserterrors) {
             return true;
-        }
-        if (result == 0) {
-            return true;
         } else {
-            return false;
+            return result;
         }
     }
 
