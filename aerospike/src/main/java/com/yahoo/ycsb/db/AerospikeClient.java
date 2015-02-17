@@ -19,8 +19,7 @@ import com.yahoo.ycsb.DBException;
 
 public class AerospikeClient extends com.yahoo.ycsb.DB{
 
-	public static final int OK = 0;
-	public static final int NULL_RESULT = -20;
+
 	private static final Map<Integer, Integer> RESULT_CODE_MAPPER;
 	static {
 		RESULT_CODE_MAPPER = new HashMap<Integer, Integer>();
@@ -38,7 +37,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 		RESULT_CODE_MAPPER.put(ResultCode.BIN_TYPE_ERROR, 12);
 		RESULT_CODE_MAPPER.put(ResultCode.RECORD_TOO_BIG, 13);
 		RESULT_CODE_MAPPER.put(ResultCode.KEY_BUSY, 14);
-		RESULT_CODE_MAPPER.put(ResultCode.OK, OK);
+		RESULT_CODE_MAPPER.put(ResultCode.OK, 0);
 		RESULT_CODE_MAPPER.put(ResultCode.SERIALIZE_ERROR, -10);
 	}
 
@@ -93,52 +92,48 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 	}
 
 	@Override
-	public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
+	public void readOne(String table, String key, String field, Map<String,ByteIterator> result) {
 		try {
 			as.get(policy, new Key(NAMESPACE, SET, key), field);
-			return OK;
 		} catch (AerospikeException e) {
-			return RESULT_CODE_MAPPER.get(e.getResultCode());
+			throw new RuntimeException(String.valueOf(RESULT_CODE_MAPPER.get(e.getResultCode())), e);
 		}
 	}
 
 	@Override
-	public int readAll(String table, String key, Map<String,ByteIterator> result) {
+	public void readAll(String table, String key, Map<String,ByteIterator> result) {
 		try {
 			as.get(policy, new Key(NAMESPACE, SET, key));
-			return OK;
 		} catch (AerospikeException e) {
-			return RESULT_CODE_MAPPER.get(e.getResultCode());
+			throw new RuntimeException(String.valueOf(RESULT_CODE_MAPPER.get(e.getResultCode())), e);
 		}
 	}
 
 	@Override
-	public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
+	public void scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
 
-		System.out.println("Unsupported operation.");
-		return -1;
+		throw new UnsupportedOperationException("Scanning is an unsupported operation.");
 	}
 
 	@Override
-	public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
+	public void scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
 
-		System.out.println("Unsupported operation.");
-		return -1;
+		throw new UnsupportedOperationException("Scanning is an unsupported operation.");
 	}
 
 	@Override
-	public int updateOne(String table, String key, String field, ByteIterator value) {
+	public void updateOne(String table, String key, String field, ByteIterator value) {
 
-		return update(key, Collections.singletonMap(field, value));
+		update(key, Collections.singletonMap(field, value));
 	}
 
 	@Override
-	public int updateAll(String table, String key, Map<String,ByteIterator> values) {
+	public void updateAll(String table, String key, Map<String,ByteIterator> values) {
 
-		return update(key, values);
+		update(key, values);
 	}
 
-	public int update(String key, Map<String, ByteIterator> values) {
+	public void update(String key, Map<String, ByteIterator> values) {
 
 		Bin[] bins = new Bin[values.size()];
 		int index = 0;
@@ -148,24 +143,22 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 		}
 		try {
 			as.put(writePolicy, new Key(NAMESPACE, SET, key), bins);
-			return OK;
 		} catch (AerospikeException e){
-			return e.getResultCode();
+			throw new RuntimeException(String.valueOf(RESULT_CODE_MAPPER.get(e.getResultCode())), e);
 		}
 	}
 
 	@Override
-	public int insert(String table, String key, Map<String, ByteIterator> values) {
-		return updateAll(table, key, values);
+	public void insert(String table, String key, Map<String, ByteIterator> values) {
+		updateAll(table, key, values);
 	}
 
 	@Override
-	public int delete(String table, String key) {
+	public void delete(String table, String key) {
 		try {
 			as.delete(writePolicy, new Key(NAMESPACE, SET, key));
-			return OK;
 		} catch (AerospikeException e){
-			return RESULT_CODE_MAPPER.get(e.getResultCode());
+			throw new RuntimeException(String.valueOf(RESULT_CODE_MAPPER.get(e.getResultCode())), e);
 		}
 	}
 }
