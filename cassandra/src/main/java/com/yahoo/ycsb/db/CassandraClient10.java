@@ -38,8 +38,6 @@ import org.apache.cassandra.thrift.*;
 public class CassandraClient10 extends DB
 {
     private static Random random = new Random();
-    private static final int Ok = 0;
-    private static final int Error = -1;
     private static final ByteBuffer emptyByteBuffer = ByteBuffer.wrap(new byte[0]);
 
     private String column_family;
@@ -158,14 +156,13 @@ public class CassandraClient10 extends DB
      * @param table  The name of the table
      * @param key    The record key of the record to read.
      * @param result A Map of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int readAll(String table, String key, Map<String, ByteIterator> result) {
+    public void readAll(String table, String key, Map<String, ByteIterator> result) {
         SliceRange range = new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000);
         SlicePredicate predicate = new SlicePredicate().setSlice_range(range);
 
-        return read(table, key, result, predicate);
+        read(table, key, result, predicate);
     }
 
     /**
@@ -175,25 +172,23 @@ public class CassandraClient10 extends DB
      * @param key The record key of the record to read.
      * @param field The field to read
      * @param result A Map of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int readOne(String table, String key, String field, Map<String, ByteIterator> result) {
+    public void readOne(String table, String key, String field, Map<String, ByteIterator> result) {
         try
         {
             ByteBuffer fieldBuffer = ByteBuffer.wrap(field.getBytes("UTF-8"));
             SlicePredicate predicate = new SlicePredicate().setColumn_names(Arrays.asList(fieldBuffer));
 
-            return read(table, key, result, predicate);
+            read(table, key, result, predicate);
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-            return Error;
+            throw new RuntimeException("Error building buffer for key: " + key, e);
         }
     }
 
-    private int read(String table, String key, Map<String, ByteIterator> result, SlicePredicate predicate) {
+    private void read(String table, String key, Map<String, ByteIterator> result, SlicePredicate predicate) {
         if (!keyspace.equals(table))
         {
             try
@@ -203,8 +198,8 @@ public class CassandraClient10 extends DB
             }
             catch (Exception e)
             {
-                e.printStackTrace();
-                return Error;
+                String errorMsg = "Error setting client keyspace for key: %s and table %s";
+                throw new RuntimeException(String.format(errorMsg, key, table), e);
             }
         }
 
@@ -243,11 +238,8 @@ public class CassandraClient10 extends DB
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-            return Error;
+            throw new RuntimeException("Error reading key: " + key, e);
         }
-
-        return Ok;
     }
 
     /**
@@ -260,12 +252,11 @@ public class CassandraClient10 extends DB
      * @param recordcount The number of records to read
      * @param result      A List of Maps, where each Map is a set field/value
      *                    pairs for one record
-     * @return Zero on success, a non-zero error code on error
      */
-    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
+    public void scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
     {
         SlicePredicate predicate = new SlicePredicate().setSlice_range(new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000));
-        return scan(table, startkey, recordcount, result, predicate);
+        scan(table, startkey, recordcount, result, predicate);
     }
 
     /**
@@ -278,24 +269,22 @@ public class CassandraClient10 extends DB
      * @param field       The field to read
      * @param result      A List of Maps, where each Map is a set field/value pairs
      *                    for one record
-     * @return Zero on success, a non-zero error code on error
      */
-    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
+    public void scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
     {
         try
         {
             ByteBuffer fieldBuffer = ByteBuffer.wrap(field.getBytes("UTF-8"));
             SlicePredicate predicate = new SlicePredicate().setColumn_names(Arrays.asList(fieldBuffer));
-            return scan(table, startkey, recordcount, result, predicate);
+            scan(table, startkey, recordcount, result, predicate);
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-            return Error;
+            throw new RuntimeException("Error building buffer for start key: " + startkey, e);
         }
     }
 
-    public int scan(String table, String startkey, int recordcount,
+    public void scan(String table, String startkey, int recordcount,
                     List<Map<String, ByteIterator>> result, SlicePredicate predicate) {
         if (!keyspace.equals(table))
         {
@@ -306,9 +295,8 @@ public class CassandraClient10 extends DB
             }
             catch (Exception e)
             {
-                e.printStackTrace();
-                e.printStackTrace(System.out);
-                return Error;
+                String errorMsg = "Error setting client keyspace for start key: %s and table %s";
+                throw new RuntimeException(String.format(errorMsg, startkey, table), e);
             }
         }
 
@@ -356,11 +344,8 @@ public class CassandraClient10 extends DB
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-            return Error;
+            throw new RuntimeException("Error scanning with startkey: " + startkey, e);
         }
-
-        return Ok;
     }
 
     /**
@@ -373,10 +358,9 @@ public class CassandraClient10 extends DB
      * @param key    The record key of the record to write.
      * @param field  The field to be updated
      * @param value  The value to update in the key record
-     * @return Zero on success, a non-zero error code on error.
      */
     @Override
-    public int updateOne(String table, String key, String field, ByteIterator value)
+    public void updateOne(String table, String key, String field, ByteIterator value)
     {
         if (!keyspace.equals(table))
         {
@@ -387,9 +371,8 @@ public class CassandraClient10 extends DB
             }
             catch (Exception e)
             {
-                e.printStackTrace();
-                e.printStackTrace(System.out);
-                return Error;
+                String errorMsg = "Error setting client keyspace for key: %s and table %s";
+                throw new RuntimeException(String.format(errorMsg, key, table), e);
             }
         }
 
@@ -412,11 +395,8 @@ public class CassandraClient10 extends DB
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-            return Error;
+            throw new RuntimeException("Error updating key: " + key, e);
         }
-
-        return Ok;
     }
 
     /**
@@ -426,11 +406,10 @@ public class CassandraClient10 extends DB
      * @param table The name of the table
      * @param key The record key of the record to write.
      * @param values A Map of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int updateAll(String table, String key, Map<String,ByteIterator> values) {
-        return insert(table, key, values);
+    public void updateAll(String table, String key, Map<String,ByteIterator> values) {
+        insert(table, key, values);
     }
 
     /**
@@ -442,9 +421,8 @@ public class CassandraClient10 extends DB
      * @param table  The name of the table
      * @param key    The record key of the record to insert.
      * @param values A Map of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error
      */
-    public int insert(String table, String key, Map<String, ByteIterator> values)
+    public void insert(String table, String key, Map<String, ByteIterator> values)
     {
         if (!keyspace.equals(table))
         {
@@ -455,9 +433,8 @@ public class CassandraClient10 extends DB
             }
             catch (Exception e)
             {
-                e.printStackTrace();
-                e.printStackTrace(System.out);
-                return Error;
+                String errorMsg = "Error setting client keyspace for key: %s and table %s";
+                throw new RuntimeException(String.format(errorMsg, key, table), e);
             }
         }
 
@@ -500,11 +477,8 @@ public class CassandraClient10 extends DB
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-            return Error;
+            throw new RuntimeException("Error inserting key: " + key, e);
         }
-
-        return Ok;
     }
 
     /**
@@ -512,9 +486,8 @@ public class CassandraClient10 extends DB
      *
      * @param table The name of the table
      * @param key   The record key of the record to delete.
-     * @return Zero on success, a non-zero error code on error
      */
-    public int delete(String table, String key)
+    public void delete(String table, String key)
     {
         if (!keyspace.equals(table))
         {
@@ -525,8 +498,8 @@ public class CassandraClient10 extends DB
             }
             catch (Exception e)
             {
-                e.printStackTrace();
-                return Error;
+                String errorMsg = "Error setting client keyspace for key: %s and table %s";
+                throw new RuntimeException(String.format(errorMsg, key, table), e);
             }
         }
 
@@ -545,11 +518,8 @@ public class CassandraClient10 extends DB
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-            return Error;
+            throw new RuntimeException("Error deleting key: " + key, e);
         }
-
-        return Ok;
     }
 
     public static void main(String[] args)
@@ -575,22 +545,22 @@ public class CassandraClient10 extends DB
         vals.put("age", new StringByteIterator("57"));
         vals.put("middlename", new StringByteIterator("bradley"));
         vals.put("favoritecolor", new StringByteIterator("blue"));
-        int res = cli.insert("usertable", "BrianFrankCooper", vals);
-        System.out.println("Result of insert: " + res);
+        cli.insert("usertable", "BrianFrankCooper", vals);
+        System.out.println("Result of insert: successful");
 
         HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
         HashSet<String> fields = new HashSet<String>();
         fields.add("middlename");
         fields.add("age");
         fields.add("favoritecolor");
-        res = cli.readAll("usertable", "BrianFrankCooper", result);
-        System.out.println("Result of read: " + res);
+        cli.readAll("usertable", "BrianFrankCooper", result);
+        System.out.println("Result of read: successful");
         for (String s : result.keySet())
         {
             System.out.println("[" + s + "]=[" + result.get(s) + "]");
         }
 
-        res = cli.delete("usertable", "BrianFrankCooper");
-        System.out.println("Result of delete: " + res);
+        cli.delete("usertable", "BrianFrankCooper");
+        System.out.println("Result of delete: successful");
     }
 }
