@@ -37,11 +37,6 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 
 public class AccumuloClient extends DB {
-	// Error code constants.
-	public static final int Ok = 0;
-	public static final int ServerError = -1;
-	public static final int HttpError = -2;
-	public static final int NoMatchingRecord = -3;
 
 	private ZooKeeperInstance _inst;
 	private Connector _connector;
@@ -171,22 +166,21 @@ public class AccumuloClient extends DB {
 	}
 
 	@Override
-	public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
-		return read(table, key, result);
+	public void readOne(String table, String key, String field, Map<String,ByteIterator> result) {
+		read(table, key, result);
 	}
 
 	@Override
-	public int readAll(String table, String key, Map<String,ByteIterator> result) {
-		return read(table, key, result);
+	public void readAll(String table, String key, Map<String,ByteIterator> result) {
+		read(table, key, result);
 	}
 
-	public int read(String table, String key, Map<String, ByteIterator> result) {
+	public void read(String table, String key, Map<String, ByteIterator> result) {
 
 		try {
 			checkTable(table);
 		} catch (TableNotFoundException e) {
-			System.err.println("Error trying to connect to Accumulo table." + e);
-			return ServerError;
+			throw new RuntimeException("Error trying to connect to Accumulo table.", e);
 		}
 
 		try {
@@ -198,39 +192,35 @@ public class AccumuloClient extends DB {
 				       new ByteArrayByteIterator(buf));
 			}
 		} catch (Exception e) {
-			System.err.println("Error trying to reading Accumulo table" + key + e);
-			return ServerError;
+ 		throw new RuntimeException("Error trying to reading Accumulo table ", e);
 		}
-		return Ok;
-
 	}
 
 	@Override
-	public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
+	public void scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
 
 		_scanScanner.clearColumns();
 		_scanScanner.setRange(new Range(new Text(startkey), null));
 		_scanScanner.fetchColumn(_colFam, new Text(field));
 
-		return scan(table, startkey, recordcount, result);
+		scan(table, startkey, recordcount, result);
 	}
 
 	@Override
-	public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
+	public void scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
 
 		_scanScanner.clearColumns();
 		_scanScanner.setRange(new Range(new Text(startkey), null));
 
-		return scan(table, startkey, recordcount, result);
+		scan(table, startkey, recordcount, result);
 	}
 
-	public int scan(String table, String startkey, int recordcount,
+	public void scan(String table, String startkey, int recordcount,
 			List<Map<String, ByteIterator>> result) {
 		try {
 			checkTable(table);
 		} catch (TableNotFoundException e) {
-			System.err.println("Error trying to connect to Accumulo table." + e);
-			return ServerError;
+			throw new RuntimeException("Error trying to connect to Accumulo table.", e);
 		}
 
 		// There doesn't appear to be a way to create a range for a given
@@ -267,23 +257,20 @@ public class AccumuloClient extends DB {
 		    byte[] buf = v.get();
 			currentHM.put(entry.getKey().getColumnQualifier().toString(), new ByteArrayByteIterator(buf));
 		}
-
-		return Ok;
-
 	}
 
 	@Override
-	public int updateOne(String table, String key, String field, ByteIterator value) {
+	public void updateOne(String table, String key, String field, ByteIterator value) {
 
 		Mutation mutInsert = new Mutation(new Text(key));
 		mutInsert.put(_colFam, new Text(field), System.currentTimeMillis(),
 				new Value(value.toArray()));
 
-		return update(table, key, mutInsert);
+		update(table, key, mutInsert);
 	}
 
 	@Override
-	public int updateAll(String table, String key, Map<String,ByteIterator> values) {
+	public void updateAll(String table, String key, Map<String,ByteIterator> values) {
 
 		Mutation mutInsert = new Mutation(new Text(key));
 		for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
@@ -292,15 +279,14 @@ public class AccumuloClient extends DB {
 					new Value(entry.getValue().toArray()));
 		}
 
-		return update(table, key, mutInsert);
+		update(table, key, mutInsert);
 	}
 
-	public int update(String table, String key, /*Map<String, ByteIterator> values*/Mutation mutInsert) {
+	public void update(String table, String key, /*Map<String, ByteIterator> values*/Mutation mutInsert) {
 		try {
 			checkTable(table);
 		} catch (TableNotFoundException e) {
-			System.err.println("Error trying to connect to Accumulo table." + e);
-			return ServerError;
+			throw new RuntimeException("Error trying to connect to Accumulo table.", e);
 		}
 
 		try {
@@ -312,38 +298,28 @@ public class AccumuloClient extends DB {
 					keyNotification(key);
 			}
 		} catch (MutationsRejectedException e) {
-			System.err.println("Error performing update.");
-			e.printStackTrace();
-			return ServerError;
+			throw new RuntimeException("Error performing update.", e);
 		}
-
-
-		return Ok;
 	}
 
 	@Override
-	public int insert(String table, String key, Map<String, ByteIterator> values) {
-		return updateAll(table, key, values);
+	public void insert(String table, String key, Map<String, ByteIterator> values) {
+		updateAll(table, key, values);
 	}
 
 	@Override
-	public int delete(String table, String key) {
+	public void delete(String table, String key) {
 		try {
 			checkTable(table);
 		} catch (TableNotFoundException e) {
-			System.err.println("Error trying to connect to Accumulo table." + e);
-			return ServerError;
+			throw new RuntimeException("Error trying to connect to Accumulo table.", e);
 		}
 
 		try {
 			deleteRow(new Text(key));
 		} catch (RuntimeException e) {
-			System.err.println("Error performing delete.");
-			e.printStackTrace();
-			return ServerError;
+			throw new RuntimeException("Error performing delete.", e);
 		}
-
-		return Ok;
 	}
 
 	// These functions are adapted from RowOperations.java:
@@ -407,7 +383,7 @@ public class AccumuloClient extends DB {
 						fields.add("field"+j);
 					HashMap<String,ByteIterator> result = new HashMap<String,ByteIterator>();
 
-					int retval = read(table, strKey, result);
+					read(table, strKey, result);
 					//If the results are empty, the key is enqueued in Zookeeper
 					//and tried again, until the results are found.
 					if (result.size() == 0) { 
@@ -433,29 +409,5 @@ public class AccumuloClient extends DB {
 				}
 			}
 		}
-
 	}
-
-	public int presplit(String table, String[] keys)
-	{
-		TreeSet<Text> splits = new TreeSet<Text>();
-		for (int i = 0;i < keys.length; i ++)
-		{
-			splits.add(new Text(keys[i]));
-		}
-		try {
-			_connector.tableOperations().addSplits(table, splits);
-		} catch (TableNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (AccumuloException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (AccumuloSecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-		return Ok;
-	}
-
 }
