@@ -52,9 +52,6 @@ import com.yahoo.ycsb.StringByteIterator;
 
 public class DynamoDBClient extends DB {
 
-    private static final int OK = 0;
-    private static final int SERVER_ERROR = 1;
-    private static final int CLIENT_ERROR = 2;
     private AmazonDynamoDBClient dynamoDB;
     private String primaryKeyName;
     private boolean debug = false;
@@ -114,26 +111,26 @@ public class DynamoDBClient extends DB {
     }
 
     @Override
-    public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
+    public void readOne(String table, String key, String field, Map<String,ByteIterator> result) {
 
         GetItemRequest req = new GetItemRequest(table, createPrimaryKey(key));
         req.setAttributesToGet(Collections.singleton(field));
         req.setConsistentRead(consistentRead);
 
-        return read(table, key, result, req);
+        read(table, key, result, req);
     }
 
     @Override
-    public int readAll(String table, String key, Map<String,ByteIterator> result) {
+    public void readAll(String table, String key, Map<String,ByteIterator> result) {
 
         GetItemRequest req = new GetItemRequest(table, createPrimaryKey(key));
         req.setAttributesToGet(null);
         req.setConsistentRead(consistentRead);
 
-        return read(table, key, result, req);
+        read(table, key, result, req);
     }
 
-    public int read(String table, String key, Map<String, ByteIterator> result,
+    public void read(String table, String key, Map<String, ByteIterator> result,
                     GetItemRequest req) {
 
         logger.debug("readkey: " + key + " from table: " + table);
@@ -142,11 +139,9 @@ public class DynamoDBClient extends DB {
         try {
             res = dynamoDB.getItem(req);
         }catch (AmazonServiceException ex) {
-            logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            throw new RuntimeException("Server Error", ex);
         }catch (AmazonClientException ex){
-            logger.error(ex.getMessage());
-            return CLIENT_ERROR;
+            throw new RuntimeException("Client Error", ex);
         }
 
         if (null != res.getItem())
@@ -154,11 +149,10 @@ public class DynamoDBClient extends DB {
             result.putAll(extractResult(res.getItem()));
             logger.debug("Result: " + res.toString());
         }
-        return OK;
     }
 
     @Override
-    public int scanOne(String table, String startkey, int recordcount, String field,
+    public void scanOne(String table, String startkey, int recordcount, String field,
                        List<Map<String, ByteIterator>> result) {
 
         GetItemRequest greq = new GetItemRequest(table, createPrimaryKey(startkey));
@@ -167,11 +161,11 @@ public class DynamoDBClient extends DB {
         ScanRequest req = new ScanRequest(table);
         req.setAttributesToGet(Collections.singleton(field));
 
-        return scan(table, startkey, recordcount, result, greq, req);
+        scan(table, startkey, recordcount, result, greq, req);
     }
 
     @Override
-    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
+    public void scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
 
         GetItemRequest greq = new GetItemRequest(table, createPrimaryKey(startkey));
         greq.setAttributesToGet(null);
@@ -179,14 +173,14 @@ public class DynamoDBClient extends DB {
         ScanRequest req = new ScanRequest(table);
         req.setAttributesToGet(null);
 
-        return scan(table, startkey, recordcount, result, greq, req);
+        scan(table, startkey, recordcount, result, greq, req);
     }
 
     /*
      * on DynamoDB's scan, startkey is *exclusive* so we need to
      * getItem(startKey) and then use scan for the res
      */
-    public int scan(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result,
+    public void scan(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result,
                     GetItemRequest greq, ScanRequest req) {
         logger.debug("scan " + recordcount + " records from key: " + startkey + " on table: " + table);
         GetItemResult gres = null;
@@ -194,11 +188,9 @@ public class DynamoDBClient extends DB {
         try {
             gres = dynamoDB.getItem(greq);
         }catch (AmazonServiceException ex) {
-            logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            throw new RuntimeException("Server Error", ex);
         }catch (AmazonClientException ex){
-            logger.error(ex.getMessage());
-           return CLIENT_ERROR;
+            throw new RuntimeException("Client Error", ex);
         }
 
         if (null != gres.getItem()) {
@@ -215,13 +207,9 @@ public class DynamoDBClient extends DB {
             try {
                 res = dynamoDB.scan(req);
             }catch (AmazonServiceException ex) {
-                logger.error(ex.getMessage());
-              ex.printStackTrace();
-             return SERVER_ERROR;
+                throw new RuntimeException("Server Error", ex);
             }catch (AmazonClientException ex){
-                logger.error(ex.getMessage());
-               ex.printStackTrace();
-             return CLIENT_ERROR;
+                throw new RuntimeException("Client Error", ex);
             }
 
             count += res.getCount();
@@ -231,23 +219,21 @@ public class DynamoDBClient extends DB {
             startKey = res.getLastEvaluatedKey();
 
         }
-
-        return OK;
     }
 
     @Override
-    public int updateOne(String table, String key, String field, ByteIterator value) {
+    public void updateOne(String table, String key, String field, ByteIterator value) {
 
         Map<String, AttributeValueUpdate> attributes = new HashMap<String, AttributeValueUpdate>(1);
         AttributeValue v = new AttributeValue(value.toString());
         attributes.put(field, new AttributeValueUpdate()
                   .withValue(v).withAction("PUT"));
 
-        return update(table, key, attributes);
+        update(table, key, attributes);
     }
 
     @Override
-    public int updateAll(String table, String key, Map<String,ByteIterator> values) {
+    public void updateAll(String table, String key, Map<String,ByteIterator> values) {
 
         Map<String, AttributeValueUpdate> attributes = new HashMap<String, AttributeValueUpdate>(values.size());
         for (Entry<String, ByteIterator> val : values.entrySet()) {
@@ -256,10 +242,10 @@ public class DynamoDBClient extends DB {
                       .withValue(v).withAction("PUT"));
         }
 
-        return update(table, key, attributes);
+        update(table, key, attributes);
     }
 
-    public int update(String table, String key, Map<String, AttributeValueUpdate> attributes) {
+    public void update(String table, String key, Map<String, AttributeValueUpdate> attributes) {
         logger.debug("updatekey: " + key + " from table: " + table);
 
         UpdateItemRequest req = new UpdateItemRequest(table, createPrimaryKey(key), attributes);
@@ -268,16 +254,14 @@ public class DynamoDBClient extends DB {
             dynamoDB.updateItem(req);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            throw new RuntimeException("Server Error", ex);
         }catch (AmazonClientException ex){
-            logger.error(ex.getMessage());
-            return CLIENT_ERROR;
+            throw new RuntimeException("Client Error", ex);
         }
-        return OK;
     }
 
     @Override
-    public int insert(String table, String key, Map<String, ByteIterator> values) {
+    public void insert(String table, String key, Map<String, ByteIterator> values) {
         logger.debug("insertkey: " + primaryKeyName + "-" + key + " from table: " + table);
         Map<String, AttributeValue> attributes = createAttributes(values);
         // adding primary key
@@ -288,17 +272,14 @@ public class DynamoDBClient extends DB {
         try {
             res = dynamoDB.putItem(putItemRequest);
         }catch (AmazonServiceException ex) {
-            logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            throw new RuntimeException("Server Error", ex);
         }catch (AmazonClientException ex){
-            logger.error(ex.getMessage());
-            return CLIENT_ERROR;
+            throw new RuntimeException("Client Error", ex);
         }
-        return OK;
     }
 
     @Override
-    public int delete(String table, String key) {
+    public void delete(String table, String key) {
         logger.debug("deletekey: " + key + " from table: " + table);
         DeleteItemRequest req = new DeleteItemRequest(table, createPrimaryKey(key));
         DeleteItemResult res = null;
@@ -306,13 +287,10 @@ public class DynamoDBClient extends DB {
         try {
             res = dynamoDB.deleteItem(req);
         }catch (AmazonServiceException ex) {
-            logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            throw new RuntimeException("Server Error", ex);
         }catch (AmazonClientException ex){
-            logger.error(ex.getMessage());
-            return CLIENT_ERROR;
+            throw new RuntimeException("Client Error", ex);
         }
-        return OK;
     }
 
     private static Map<String, AttributeValue> createAttributes(
